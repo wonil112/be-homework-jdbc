@@ -6,7 +6,11 @@ import com.springboot.order.dto.OrderResponseDto;
 import com.springboot.order.entity.Order;
 import com.springboot.order.mapper.OrderMapper;
 import com.springboot.order.service.OrderService;
+import com.springboot.response.PageInfo;
+import com.springboot.response.PageResponseDto;
 import com.springboot.utils.UriCreator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -51,15 +55,16 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity getOrders() {
-        List<Order> orders = orderService.findOrders();
-
+    public ResponseEntity getOrders(@Positive @RequestParam int page,
+                                    @Positive @RequestParam int size) {
+        Page<Order> orderPage = orderService.findOrders(page, size);
+        List<Order> orderList = orderPage.getContent();
         List<OrderResponseDto> response =
-                orders.stream()
+                orderList.stream()
                         .map(order -> mapper.orderToOrderResponseDto(coffeeService, order))
                         .collect(Collectors.toList());
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        PageInfo pageInfo = new PageInfo(page, size, (int) orderPage.getTotalElements(), orderPage.getTotalPages());
+        return new ResponseEntity<>(new PageResponseDto(response, pageInfo), HttpStatus.OK);
     }
 
     @DeleteMapping("/{order-id}")
